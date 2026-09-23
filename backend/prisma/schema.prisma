@@ -1,0 +1,220 @@
+// L'Oréal Claims Intelligence Engine - data model (revised)
+// Claim -> Evidence (1..n) -> Assessment (1..n, append-only) -> AssessmentReview (0..n, append-only)
+//
+// Constraints Prisma cannot express (CHECKs, immutability triggers) live in
+// constraints.sql and must be added to a migration.
+//
+// Actor IDs (proposedById, submittedById, createdById, reviewedById, actorId)
+// are opaque external identities (SSO subject). No FK by design; validate at the app layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ClaimType {
+  EFFICACY_QUANTIFIED
+  EFFICACY_QUALITATIVE
+  CONSUMER_PERCEPTION
+  SENSORY
+  COMPARATIVE
+  FREE_FROM
+  SAFETY_TOLERANCE
+}
+
+enum ClaimStatus {
+  PROPOSED
+  SCREENING
+  REJECTED_AT_SCREENING
+  IN_FORMULATION
+  AWAITING_EVIDENCE
+  UNDER_ASSESSMENT
+  SUBSTANTIATED
+  NOT_SUBSTANTIATED
+  WITHDRAWN
+}
+
+/// WITHIN = effect appears by the specified time.
+/// LASTS  = effect persists for the specified time.
+enum TimeframeKind {
+  WITHIN
+  LASTS
+}
+
+enum Verdict {
+  JUSTIFIED
+  NOT_JUSTIFIED
+  INSUFFICIENT_EVIDENCE
+}
+
+/// A review row exists only once a human has acted. "Pending" = no review row.
+enum ReviewDecision {
+  ACCEPTED
+  OVERRIDDEN
+}
+
+/// Who or what moved the claim status.
+enum StatusSource {
+  SYSTEM_ROLLUP
+  USER
+}
+
+// ============================================================
+// CLAIM
+// ============================================================
+
+model Claim {
+  id             String         @id @default(uuid())
+
+  productId      String
+  productName    String
+  formulaVersion String?
+
+  text           String
+  type           ClaimType
+
+  /// ISO 3166-1 alpha-2 codes, e.g. ["FR","US","CN"]. Each assessment is scoped to one of these.
+  markets        String[]
+
+  // Structured claim info, filled during screening.
+  metric         String?
+  targetValue    Decimal?       @db.Decimal(10, 2)
+  unit           String?
+  /// 28 days -> "in 4 weeks"; 1 day -> "for 24 hours"
+  timeframeDays  Decimal?       @db.Decimal(8, 3)
+  timeframeKind  TimeframeKind?
+
+  /// Current status (denormalised). Full history is in ClaimStatusEvent.
+  status         ClaimStatus    @default(PROPOSED)
+
+  proposedById   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  evidence       Evidence[]
+  assessments    Assessment[]
+  statusEvents   ClaimStatusEvent[]
+
+  @@index([productId, status])
+}
+
+/// Append-only audit trail of status changes.
+/// SUBSTANTIATED / NOT_SUBSTANTIATED must be written here with source + reason,
+/// whether derived by a rollup job or set by a person.
+model ClaimStatusEvent {
+  id         String       @id @default(uuid())
+  claimId    String
+  claim      Claim        @relation(fields: [claimId], references: [id], onDelete: Restrict)
+
+  fromStatus ClaimStatus?
+  toStatus   ClaimStatus
+  source     StatusSource
+  actorId    String?      // null for SYSTEM_ROLLUP
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  @@index([claimId, createdAt])
+}
+
+// ============================================================
+// EVIDENCE  (immutable once created; enforced by trigger)
+// ============================================================
+
+model Evidence {
+  id            String       @id @default(uuid())
+
+  claimId       String
+  claim         Claim        @relation(fields: [claimId], references: [id], onDelete: Restrict)
+
+  studyTitle    String
+  studyType     String?
+
+  /// Study content / summary used by the AI.
+  content       String       @db.Text
+
+  /// SHA-256 hex of normalised content (Unicode NFC, trimmed, whitespace collapsed).
+  /// Normalise in the app before hashing, or the dedupe is defeated by whitespace.
+  contentHash   String
+
+  submittedById String
+  createdAt     DateTime     @default(now())
+
+  assessments   Assessment[]
+
+  @@unique([claimId, contentHash])
+  @@unique([id, claimId]) // target for Assessment's composite FK
+}
+
+// ============================================================
+// ASSESSMENT  (append-only; enforced by trigger)
+// ============================================================
+
+model Assessment {
+  id                   String     @id @default(uuid())
+
+  claimId              String
+  claim                Claim      @relation(fields: [claimId], references: [id], onDelete: Restrict)
+
+  evidenceId           String
+  /// Composite FK guarantees the evidence belongs to the same claim.
+  evidence             Evidence   @relation(fields: [evidenceId, claimId], references: [id, claimId], onDelete: Restrict)
+
+  /// Market this verdict applies to; must be one of Claim.markets (checked in app).
+  market               String
+
+  /// Hash of the evidence content at assessment time.
+  evidenceContentHash  String
+
+  // ---- AI output ----
+  verdict              Verdict
+  /// 0.000 - 1.000 (CHECK in constraints.sql)
+  confidence           Decimal    @db.Decimal(4, 3)
+  reasoning            String     @db.Text
+  /// [{ "name": "...", "status": "PASS", "explanation": "..." }]
+  /// Validate with Zod on write; include "schemaVersion".
+  criteria             Json
+  /// { "schemaVersion": 1, "endpoint": "wrinkle depth", "timepointDays": 28, "sampleSize": 120 }
+  extractedFindings    Json
+  /// e.g. ["EFFECT_BELOW_CLAIMED_MAGNITUDE"]
+  guardrailFlags       String[]
+  suggestedRewording   String?
+
+  // ---- Traceability ----
+  modelName            String
+  /// e.g. claim-assess@1.0.0
+  promptVersion        String
+
+  createdById          String
+  createdAt            DateTime   @default(now())
+
+  reviews              AssessmentReview[]
+
+  @@index([claimId, market, createdAt])
+  @@index([evidenceId])
+}
+
+// ============================================================
+// HUMAN REVIEW  (append-only; latest row by reviewedAt is current)
+// ============================================================
+
+model AssessmentReview {
+  id           String         @id @default(uuid())
+
+  assessmentId String
+  assessment   Assessment     @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+
+  decision     ReviewDecision
+  /// Required when OVERRIDDEN, null when ACCEPTED (CHECK in constraints.sql)
+  humanVerdict Verdict?
+  /// Required when OVERRIDDEN
+  note         String?
+
+  reviewedById String
+  reviewedAt   DateTime       @default(now())
+
+  @@index([assessmentId, reviewedAt])
+  @@index([reviewedAt])
+}
