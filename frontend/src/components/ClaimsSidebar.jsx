@@ -9,9 +9,8 @@ export default function ClaimsSidebar({ claims, selectedId, onSelect }) {
           aria-current={c.id === selectedId}
           onClick={() => onSelect(c.id)}
         >
-          <b>{c.title}</b>
-          <span>{c.product}</span>
-          {/* <em className="tag">{c.status}</em> */}
+          <b>{c.text}</b>
+          <span>{c.productName}</span>
         </button>
       ))}
     </aside>

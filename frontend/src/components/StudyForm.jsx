@@ -1,15 +1,20 @@
 import { useState } from "react";
 import SamplePicker from "./SamplePicker.jsx";
+import Select from "./Select.jsx";
 import { SAMPLE_STUDIES, STUDY_TYPES } from "../data/studies.js";
+import { assessEvidence } from "../api.js";
 
 export default function StudyForm({ claim }) {
   const [sample, setSample] = useState(null);
   const [title, setTitle] = useState("");
   const [type, setType] = useState(STUDY_TYPES[0]);
   const [results, setResults] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [market, setMarket] = useState(claim.markets[0]);
+  const [status, setStatus] = useState("idle"); // idle | loading | error
+  const [error, setError] = useState(null);
+  const [assessment, setAssessment] = useState(null);
 
-  const ready = title.trim() && results.trim();
+  const ready = title.trim() && results.trim().length >= 20;
 
   const pickSample = (i) => {
     const s = SAMPLE_STUDIES[i];
@@ -17,17 +22,30 @@ export default function StudyForm({ claim }) {
     setTitle(s.label);
     setType(s.type);
     setResults(s.text);
-    setSubmitted(false);
+    setAssessment(null);
+    setStatus("idle");
   };
 
-  const handleAssess = () => {
-    // TODO: call your assessment API with { claimId: claim.id, title, type, results }
-    setSubmitted(true);
+  const handleAssess = async () => {
+    setStatus("loading");
+    setError(null);
+    try {
+      const result = await assessEvidence({
+        claimId: claim.id,
+        market,
+        evidence: { studyTitle: title, studyType: type, content: results },
+      });
+      setAssessment(result);
+      setStatus("idle");
+    } catch (err) {
+      setError(err.message);
+      setStatus("error");
+    }
   };
 
   return (
     <section>
-      <h3 className="">Attach study results</h3>
+      <h3>Attach study results</h3>
       <p className="lead">Start from a sample study, or paste your own summary below.</p>
       <SamplePicker activeIndex={sample} onPick={pickSample} />
 
@@ -38,9 +56,11 @@ export default function StudyForm({ claim }) {
         </div>
         <div className="field">
           <label htmlFor="stype">Study type</label>
-          <select id="stype" value={type} onChange={(e) => setType(e.target.value)}>
-            {STUDY_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
+          <Select id="stype" value={type} onChange={setType} options={STUDY_TYPES} />
+        </div>
+        <div className="field">
+          <label htmlFor="smarket">Market</label>
+          <Select id="smarket" value={market} onChange={setMarket} options={claim.markets} />
         </div>
       </div>
 
@@ -50,14 +70,29 @@ export default function StudyForm({ claim }) {
       </div>
 
       <div className="foot">
-        <button className="cta" disabled={!ready} onClick={handleAssess}>Assess evidence</button>
-        <span className="hint">{ready ? "Ready to assess against this claim." : "Add a title and results to continue."}</span>
+        <button className="cta" disabled={!ready || status === "loading"} onClick={handleAssess}>
+          {status === "loading" ? "Assessing…" : "Assess evidence"}
+        </button>
+        <span className="hint">{ready ? "Ready to assess against this claim." : "Add a title and at least 20 characters of results to continue."}</span>
       </div>
 
-      {submitted && (
+      {status === "error" && (
+        <div className="result result--error" role="alert">
+          <h4>Assessment failed</h4>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {assessment && (
         <div className="result" role="status">
-          <h4>Assessment queued</h4>
-          <p>“{title}” is being checked against this claim.</p>
+          <span className={assessment.justified ? "verdict verdict--pass" : "verdict verdict--fail"}>
+            {assessment.justified ? "Justified" : "Not justified"}
+          </span>
+          <h4>{Math.round(assessment.confidence * 100)}% confidence</h4>
+          <p>{assessment.reasoning}</p>
+          {assessment.guardrailFlags.length > 0 && (
+            <p className="hint">Flags: {assessment.guardrailFlags.join(", ")}</p>
+          )}
         </div>
       )}
     </section>

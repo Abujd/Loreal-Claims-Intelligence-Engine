@@ -1,11 +1,11 @@
 :root {
-  --bg: #F7F5F2;
-  --surface: #ffffff;
-  --ink: #000000;
-  --muted: #6B6B6B;
-  --gold: #C9A45C;
-  --line: #E5E0D8;
-  --chip: #EFEBE4;
+  --bg: #14130F;
+  --surface: #1C1A15;
+  --ink: #F2EEE6;
+  --muted: #9C968A;
+  --accent: #3FA9A0;
+  --line: #34302A;
+  --chip: #2A271F;
   --font-heading: 'Playfair Display', Georgia, serif;
   --font-body: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
 }
