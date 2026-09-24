@@ -19,3 +19,9 @@ export const CLAIM_STATUS_LABELS = {
   NOT_SUBSTANTIATED: "Not Substantiated",
   WITHDRAWN: "Withdrawn",
 };
+
+export const VERDICT_LABELS = {
+  JUSTIFIED: "Justified",
+  NOT_JUSTIFIED: "Not justified",
+  INSUFFICIENT_EVIDENCE: "Insufficient evidence",
+};

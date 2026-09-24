@@ -39,6 +39,28 @@
 .verdict { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 10px; }
 .verdict--pass { background: rgba(63, 169, 160, .18); color: var(--accent); }
 .verdict--fail { background: rgba(194, 84, 84, .18); color: #C25454; }
+.verdict--unclear { background: rgba(201, 164, 92, .18); color: #C9A45C; }
+
+.review { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.review__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.review__textarea { min-height: 90px; font-size: 13px; }
+.review__override .field { margin-bottom: 14px; }
+.review__error { color: #C25454; font-size: 12px; margin: 10px 0 0; }
+
+.btn { font: inherit; font-size: 12px; font-weight: 600; letter-spacing: .06em; padding: 10px 20px; border-radius: 2px; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+.btn:disabled { cursor: not-allowed; opacity: .6; }
+.btn--accept { background: var(--accent); border: 1px solid var(--accent); color: #08201d; }
+.btn--accept:hover:not(:disabled) { background: #4dbdb3; }
+.btn--override { background: none; border: 1px solid var(--line); color: var(--ink); }
+.btn--override:hover:not(:disabled) { border-color: var(--muted); }
+.btn--ghost { background: none; border: 1px solid transparent; color: var(--muted); }
+.btn--ghost:hover:not(:disabled) { color: var(--ink); }
+
+.reviewtag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+.reviewtag--accepted { background: rgba(63, 169, 160, .18); color: var(--accent); }
+.reviewtag--overridden { background: rgba(201, 164, 92, .18); color: #C9A45C; }
+.review__verdict { margin: 10px 0 4px; font-size: 13px; font-weight: 600; }
+.review__note { margin: 0; color: var(--muted); font-size: 13px; font-style: italic; }
 
 .select { position: relative; }
 .select__control { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; font: inherit; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 13px 16px; border-radius: 2px; cursor: pointer; transition: border-color .2s; }

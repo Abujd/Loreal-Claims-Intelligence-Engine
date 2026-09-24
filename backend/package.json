@@ -22,6 +22,7 @@
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "ollama": "^0.6.3",
+    "openai": "^7.23.0",
     "pg": "^8.23.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",

@@ -1,8 +1,16 @@
 import { useState } from "react";
 import SamplePicker from "./SamplePicker.jsx";
 import Select from "./Select.jsx";
+import ReviewPanel from "./ReviewPanel.jsx";
 import { SAMPLE_STUDIES, STUDY_TYPES } from "../data/studies.js";
+import { VERDICT_LABELS } from "../constants.js";
 import { assessEvidence } from "../api.js";
+
+const VERDICT_MODIFIER = {
+  JUSTIFIED: "pass",
+  NOT_JUSTIFIED: "fail",
+  INSUFFICIENT_EVIDENCE: "unclear",
+};
 
 export default function StudyForm({ claim }) {
   const [sample, setSample] = useState(null);
@@ -13,6 +21,7 @@ export default function StudyForm({ claim }) {
   const [status, setStatus] = useState("idle"); // idle | loading | error
   const [error, setError] = useState(null);
   const [assessment, setAssessment] = useState(null);
+  const [review, setReview] = useState(null);
 
   const ready = title.trim() && results.trim().length >= 20;
 
@@ -23,12 +32,14 @@ export default function StudyForm({ claim }) {
     setType(s.type);
     setResults(s.text);
     setAssessment(null);
+    setReview(null);
     setStatus("idle");
   };
 
   const handleAssess = async () => {
     setStatus("loading");
     setError(null);
+    setReview(null);
     try {
       const result = await assessEvidence({
         claimId: claim.id,
@@ -85,14 +96,19 @@ export default function StudyForm({ claim }) {
 
       {assessment && (
         <div className="result" role="status">
-          <span className={assessment.justified ? "verdict verdict--pass" : "verdict verdict--fail"}>
-            {assessment.justified ? "Justified" : "Not justified"}
+          <span className={`verdict verdict--${VERDICT_MODIFIER[assessment.verdict]}`}>
+            {VERDICT_LABELS[assessment.verdict] ?? assessment.verdict}
           </span>
           <h4>{Math.round(assessment.confidence * 100)}% confidence</h4>
           <p>{assessment.reasoning}</p>
           {assessment.guardrailFlags.length > 0 && (
             <p className="hint">Flags: {assessment.guardrailFlags.join(", ")}</p>
           )}
+          {assessment.suggestedRewording && (
+            <p className="hint">Suggested rewording: “{assessment.suggestedRewording}”</p>
+          )}
+
+          <ReviewPanel assessmentId={assessment.id} review={review} onReviewed={setReview} />
         </div>
       )}
     </section>
