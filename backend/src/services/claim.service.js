@@ -25,9 +25,9 @@ const createClaim = async (data) => {
 const toClaimResponse = (claim) => ({
     id: claim.id,
     productName: claim.productName,
-    claimText: claim.claimText,
-    claimType: claim.claimType,
-    market: claim.market,
+    text: claim.text,
+    type: claim.type,
+    markets: claim.markets,
     status: claim.status,
     createdAt: claim.createdAt,
 });
