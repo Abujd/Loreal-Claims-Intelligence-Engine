@@ -12,6 +12,31 @@ const VERDICT_MODIFIER = {
   INSUFFICIENT_EVIDENCE: "unclear",
 };
 
+const CRITERION_LABELS = {
+  ENDPOINT_MATCHES_CLAIM: "Endpoint match",
+  MAGNITUDE_SUPPORTED: "Effect magnitude",
+  TIMEFRAME_SUPPORTED: "Timeframe",
+  SAMPLE_ADEQUATE: "Sample size",
+  METHOD_ROBUST: "Study method",
+  STATISTICALLY_SIGNIFICANT: "Statistical significance",
+};
+
+const FINDING_FIELDS = [
+  ["endpoint", "Reported endpoint"],
+  ["measurementMethod", "Measurement method"],
+  ["observedEffectPercent", "Observed effect", (value) => `${value}%`],
+  ["sampleSize", "Sample size", (value) => `${value} participants`],
+  ["timepointDays", "Timepoint (days, model extracted)", (value) => `${value} days`],
+  ["studyDurationDays", "Study duration (days)", (value) => `${value} days`],
+  ["comparator", "Comparator"],
+  ["statisticalSignificance", "Statistical result"],
+];
+
+function displayFinding(value, format) {
+  if (value === null || value === undefined || value === "") return "Not reported";
+  return format ? format(value) : String(value);
+}
+
 export default function StudyForm({ claim }) {
   const [sample, setSample] = useState(null);
   const [title, setTitle] = useState("");
@@ -95,18 +120,84 @@ export default function StudyForm({ claim }) {
       )}
 
       {assessment && (
-        <div className="result" role="status">
-          <span className={`verdict verdict--${VERDICT_MODIFIER[assessment.verdict]}`}>
-            {VERDICT_LABELS[assessment.verdict] ?? assessment.verdict}
-          </span>
-          <h4>{Math.round(assessment.confidence * 100)}% confidence</h4>
-          <p>{assessment.reasoning}</p>
-          {assessment.guardrailFlags.length > 0 && (
-            <p className="hint">Flags: {assessment.guardrailFlags.join(", ")}</p>
+        <div className="result result--assessment" role="status">
+          <div className="result__header">
+            <div>
+              <span className={`verdict verdict--${VERDICT_MODIFIER[assessment.verdict]}`}>
+                {VERDICT_LABELS[assessment.verdict] ?? assessment.verdict}
+              </span>
+              <p className="result__market">Market: {assessment.market}</p>
+            </div>
+            <div className="result__confidence">
+              <strong>{Math.round(assessment.confidence * 100)}%</strong>
+              <span>confidence</span>
+            </div>
+          </div>
+
+          <section className="result__section">
+            <h4>Why this verdict</h4>
+            <p>{assessment.reasoning}</p>
+          </section>
+
+          {assessment.extractedFindings && (
+            <section className="result__section">
+              <h4>Study findings</h4>
+              <dl className="result__facts">
+                {FINDING_FIELDS.map(([key, label, format]) => (
+                  <div key={key}>
+                    <dt>{label}</dt>
+                    <dd>{displayFinding(assessment.extractedFindings[key], format)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           )}
+
+          {assessment.criteria?.length > 0 && (
+            <section className="result__section">
+              <h4>Assessment criteria</h4>
+              <ul className="result__criteria">
+                {assessment.criteria.map((criterion) => (
+                  <li className="result__criterion" key={criterion.name}>
+                    <div className="result__criterion-heading">
+                      <strong>{CRITERION_LABELS[criterion.name] ?? criterion.name.replaceAll("_", " ")}</strong>
+                      <span className={`criterion-status criterion-status--${criterion.status.toLowerCase()}`}>
+                        {criterion.status.replaceAll("_", " ")}
+                      </span>
+                    </div>
+                    <p>{criterion.explanation}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="result__section result__guardrails">
+            <h4>Rule-based checks</h4>
+            {assessment.guardrailFlags.length > 0 ? (
+              <ul>
+                {assessment.guardrailFlags.map((flag) => <li key={flag}>{flag.replaceAll("_", " ")}</li>)}
+              </ul>
+            ) : <p>No guardrail flags.</p>}
+          </section>
+
           {assessment.suggestedRewording && (
-            <p className="hint">Suggested rewording: “{assessment.suggestedRewording}”</p>
+            <section className="result__section">
+              <h4>Suggested rewording</h4>
+              <p>{assessment.suggestedRewording}</p>
+            </section>
           )}
+
+          <details className="result__traceability">
+            <summary>Assessment details</summary>
+            <dl>
+              <div><dt>Model</dt><dd>{assessment.model}</dd></div>
+              <div><dt>Model confidence</dt><dd>{Math.round(assessment.modelConfidence * 100)}%</dd></div>
+              <div><dt>Prompt version</dt><dd>{assessment.promptVersion}</dd></div>
+              <div><dt>Response time</dt><dd>{Math.round(assessment.latencyMs / 1000)} seconds</dd></div>
+              <div><dt>Assessment ID</dt><dd>{assessment.id}</dd></div>
+            </dl>
+          </details>
 
           <ReviewPanel assessmentId={assessment.id} review={review} onReviewed={setReview} />
         </div>

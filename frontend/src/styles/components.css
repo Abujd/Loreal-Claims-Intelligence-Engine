@@ -199,6 +199,10 @@
     max-width: 640px;
 }
 
+.result--assessment {
+    max-width: none;
+}
+
 .result h4 {
     font-size: 15px;
     margin: 0 0 6px;
@@ -226,6 +230,148 @@
 
 .result--error {
     border-left-color: #C25454;
+}
+
+.result__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.result__header .verdict {
+    margin-bottom: 6px;
+}
+
+.result__market {
+    font-size: 12px !important;
+}
+
+.result__confidence {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+    flex: none;
+}
+
+.result__confidence strong {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.result__confidence span {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.result__section {
+    padding-top: 20px;
+}
+
+.result__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: 1px;
+    margin: 12px 0 0;
+    background: var(--line);
+    border: 1px solid var(--line);
+}
+
+.result__facts div {
+    min-width: 0;
+    padding: 12px;
+    background: var(--surface);
+}
+
+.result__facts dt,
+.result__traceability dt {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.result__facts dd,
+.result__traceability dd {
+    margin: 4px 0 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.result__criteria,
+.result__guardrails ul {
+    display: grid;
+    gap: 0;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.result__criterion {
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+}
+
+.result__criterion-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 5px;
+}
+
+.result__criterion-heading strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.criterion-status {
+    flex: none;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.criterion-status--met {
+    color: var(--accent);
+}
+
+.criterion-status--not_met {
+    color: #C25454;
+}
+
+.criterion-status--unclear {
+    color: #C9A45C;
+}
+
+.result__guardrails ul {
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.result__traceability {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.result__traceability summary {
+    width: fit-content;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.result__traceability dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: 12px;
+    margin: 14px 0 0;
 }
 
 .verdict {

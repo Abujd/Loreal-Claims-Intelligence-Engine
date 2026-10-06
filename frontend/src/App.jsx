@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
 import ClaimsSidebar from "./components/ClaimsSidebar.jsx";
 import ClaimSummary from "./components/ClaimSummary.jsx";
@@ -9,8 +9,12 @@ export default function App() {
   const [claims, setClaims] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error
+  const claimsRef = useRef(null);
 
   useEffect(() => {
+    if (claimsRef.current) return; // only run once
+    claimsRef.current = true;
+
     listClaims()
       .then((data) => {
         setClaims(data);
